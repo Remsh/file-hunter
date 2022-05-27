@@ -1,9 +1,7 @@
 package main
 
 import (
-	// "bytes"
 	"fmt"
-	// "os"
 	"io/ioutil"
 	"log"
 	"os/exec"
@@ -13,25 +11,60 @@ import (
 	"time"
 )
 
-func subfolders(path string) []string {
+/* func subfolders( path string) []string {
 
 	files, err := ioutil.ReadDir(path)
 	pathM, _ := filepath.Abs(path)
-	if err != nil {
-		log.Fatal(err)
-	}
+    if err != nil {
+        log.Fatal(err)
+    }
 
 	var subpath []string
-	for _, file := range files {
-		// fmt.Println(file.Name(), file.IsDir())
+    for _, file := range files {
+        // fmt.Println(file.Name(), file.IsDir())
 		if file.IsDir() {
 			fileFullPath := filepath.Join(pathM, file.Name())
 			subpath = append(subpath, fileFullPath)
 		}
-	}
+    }
 
 	// fmt.Println(subpath)
 	return subpath
+
+}
+
+*/
+
+func subfolders(path string, depth int, subpath []string) []string {
+
+	if depth > 0 {
+
+		files, err := ioutil.ReadDir(path)
+		pathM, _ := filepath.Abs(path)
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		depth--
+
+		for _, file := range files {
+
+			if file.IsDir() {
+				fileFullPath := filepath.Join(pathM, file.Name())
+				subpath = append(subpath, fileFullPath)
+
+				remove(subpath, "/proc")
+				if fileFullPath != "/proc" {
+					subpath = subfolders(fileFullPath, depth, subpath)
+				}
+
+			}
+		}
+
+	}
+	// fmt.Println(subpath)
+	return subpath
+
 }
 
 func remove[T comparable](l []T, item T) []T {
@@ -46,39 +79,26 @@ func remove[T comparable](l []T, item T) []T {
 func main() {
 
 	rootPath := "/"
-	rootFolders := subfolders(rootPath)
 
-	remove(rootFolders, "/proc")
-	remove(rootFolders, "/sys")
-
-	var subpath2 []string
-	for _, path := range rootFolders {
-		for _, k := range subfolders(path) {
-			subpath2 = append(subpath2, k)
-		}
-	}
-
-	var subpath3 []string
-	for _, path := range subpath2 {
-		for _, k := range subfolders(path) {
-			subpath3 = append(subpath3, k)
-		}
-	}
-
+	var array []string
+	subpath3 := subfolders(rootPath, 3, array)
 	fmt.Println(subpath3)
 
 	//du -m -s /root
 	state1 := tackPath(subpath3)
 
 	time.Sleep(2 * time.Minute)
+
 	state2 := tackPath(subpath3)
 
 	diff(state1, state2)
+
 }
 
 func tackPath(path []string) map[string]int {
 
 	m := make(map[string]int)
+
 	for _, path := range path {
 		output, err := exec.Command("du", "-ms", path).Output()
 		if err != nil {
