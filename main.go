@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"os"
 	"os/exec"
 	"path/filepath"
 	"strconv"
@@ -11,60 +12,29 @@ import (
 	"time"
 )
 
-/* func subfolders( path string) []string {
-
-	files, err := ioutil.ReadDir(path)
-	pathM, _ := filepath.Abs(path)
-    if err != nil {
-        log.Fatal(err)
-    }
-
-	var subpath []string
-    for _, file := range files {
-        // fmt.Println(file.Name(), file.IsDir())
-		if file.IsDir() {
-			fileFullPath := filepath.Join(pathM, file.Name())
-			subpath = append(subpath, fileFullPath)
-		}
-    }
-
-	// fmt.Println(subpath)
-	return subpath
-
-}
-
-*/
-
 func subfolders(path string, depth int, subpath []string) []string {
 
 	if depth > 0 {
-
 		files, err := ioutil.ReadDir(path)
 		pathM, _ := filepath.Abs(path)
 		if err != nil {
 			log.Fatal(err)
 		}
-
 		depth--
-
 		for _, file := range files {
-
 			if file.IsDir() {
 				fileFullPath := filepath.Join(pathM, file.Name())
 				subpath = append(subpath, fileFullPath)
-
 				remove(subpath, "/proc")
+				remove(subpath, "/mnt")
 				if fileFullPath != "/proc" {
 					subpath = subfolders(fileFullPath, depth, subpath)
 				}
-
 			}
 		}
-
 	}
 	// fmt.Println(subpath)
 	return subpath
-
 }
 
 func remove[T comparable](l []T, item T) []T {
@@ -78,7 +48,13 @@ func remove[T comparable](l []T, item T) []T {
 
 func main() {
 
-	rootPath := "/"
+	//get parameters or set default
+	var rootPath string
+	if len(os.Args) > 1 {
+		rootPath = os.Args[1]
+	} else {
+		rootPath = "/"
+	}
 
 	var array []string
 	subpath3 := subfolders(rootPath, 3, array)
@@ -86,19 +62,14 @@ func main() {
 
 	//du -m -s /root
 	state1 := tackPath(subpath3)
-
 	time.Sleep(2 * time.Minute)
-
 	state2 := tackPath(subpath3)
-
 	diff(state1, state2)
 
 }
 
 func tackPath(path []string) map[string]int {
-
 	m := make(map[string]int)
-
 	for _, path := range path {
 		output, err := exec.Command("du", "-ms", path).Output()
 		if err != nil {
@@ -111,10 +82,7 @@ func tackPath(path []string) map[string]int {
 		}
 		m[path] = intVar
 	}
-
-	// fmt.Println(m)
 	return m
-
 }
 
 func diff(a, b map[string]int) []string {
